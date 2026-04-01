@@ -1,0 +1,35 @@
+{
+  "name": "olx-automation-backend",
+  "version": "1.0.0",
+  "type": "module",
+  "engines": { "node": ">=22.5.0" },
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/main.js",
+    "lint": "eslint src --ext .ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "axios": "^1.7.0",
+    "cheerio": "^1.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.0",
+    "express": "^4.19.0",
+    "multer": "^1.4.5-lts.1",
+    "node-cron": "^3.0.3",
+    "sharp": "^0.33.4",
+    "uuid": "^10.0.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/multer": "^1.4.11",
+    "@types/node": "^22.19.15",
+    "@types/node-cron": "^3.0.11",
+    "@types/uuid": "^10.0.0",
+    "tsx": "^4.16.0",
+    "typescript": "^5.5.0"
+  }
+}

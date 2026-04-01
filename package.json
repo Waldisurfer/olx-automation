@@ -1,0 +1,15 @@
+{
+  "name": "olx-automation",
+  "private": true,
+  "workspaces": ["backend", "frontend"],
+  "scripts": {
+    "dev:backend": "npm run dev --workspace=backend",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "build": "npm run build --workspace=backend && npm run build --workspace=frontend",
+    "lint": "npm run lint --workspace=backend && npm run lint --workspace=frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  }
+}
