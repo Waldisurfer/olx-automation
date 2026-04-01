@@ -7,12 +7,7 @@
   },
   "scripts": {
     "dev": "tsx watch src/main.ts",
-<<<<<<< railway/code-change-u4Twhz
-    "build": "tsc -p tsconfig.json",
-    "postbuild": "cp -r src/db/migrations dist/db/",
-=======
     "build": "tsc -p tsconfig.json && cp -r src/db/migrations dist/db/",
->>>>>>> main
     "start": "node dist/main.js",
     "lint": "eslint src --ext .ts"
   },
