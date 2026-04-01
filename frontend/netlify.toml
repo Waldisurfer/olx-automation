@@ -4,6 +4,7 @@
 
 [build.environment]
   NODE_VERSION = "22"
+  VITE_API_BASE_URL = "https://backend-production-0723.up.railway.app"
 
 # SPA — wszystkie ścieżki do index.html
 [[redirects]]
