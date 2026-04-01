@@ -33,7 +33,7 @@ export const ImageStorageService = {
 
     return {
       fileId,
-      previewUrl: `/uploads/${filename}`,
+      previewUrl: `${config.publicBaseUrl}/uploads/${filename}`,
     };
   },
 
