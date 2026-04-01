@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
+    "typescript": "^5.5.0",
     "axios": "^1.7.0",
     "cheerio": "^1.0.0",
     "cors": "^2.8.5",
@@ -33,7 +34,6 @@
     "@types/node-cron": "^3.0.11",
     "@types/pg": "^8.20.0",
     "@types/uuid": "^10.0.0",
-    "tsx": "^4.16.0",
-    "typescript": "^5.5.0"
+    "tsx": "^4.16.0"
   }
 }
