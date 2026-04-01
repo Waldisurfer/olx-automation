@@ -1,19 +1,30 @@
 <script setup lang="ts">
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { useNotificationStore } from '@/stores/useNotificationStore.js';
+import { useAuthStore } from '@/stores/useAuthStore.js';
 
 const router = useRouter();
+const route = useRoute();
 const notif = useNotificationStore();
+const auth = useAuthStore();
+
+function logout() {
+  auth.logout();
+  router.push('/auth');
+}
 </script>
 
 <template>
   <div class="app">
-    <nav class="nav">
+    <nav v-if="route.path !== '/auth'" class="nav">
       <span class="brand" @click="router.push('/dashboard')">OLX Automation</span>
       <div class="links">
         <button @click="router.push('/dashboard')">Dashboard</button>
         <button @click="router.push('/listings/new')">+ Nowe</button>
         <button @click="router.push('/settings')">Ustawienia</button>
+        <span class="user-info" v-if="auth.isLoggedIn">{{ auth.user?.email }}</span>
+        <span class="user-info guest" v-else-if="auth.isGuest">Gość</span>
+        <button class="logout" @click="logout">Wyloguj</button>
       </div>
     </nav>
 
@@ -57,6 +68,9 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sa
   transition: background 0.15s;
 }
 .links button:hover { background: #f3f4f6; }
+.user-info { font-size: 13px; color: #6b7280; padding: 0 8px; }
+.user-info.guest { color: #9ca3af; font-style: italic; }
+.logout { color: #dc2626 !important; }
 .main { flex: 1; }
 .toasts { position: fixed; bottom: 24px; right: 24px; display: flex; flex-direction: column; gap: 8px; z-index: 200; }
 .toast {

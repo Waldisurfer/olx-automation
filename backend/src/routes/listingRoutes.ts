@@ -5,8 +5,11 @@ import { PriceHistoryRepository } from '../db/repositories/PriceHistoryRepositor
 import { ListingPublisher } from '../services/ListingPublisher.js';
 import { ClaudeVisionService } from '../services/ClaudeVisionService.js';
 import { config } from '../config/AppConfig.js';
+import { authMiddleware } from '../middleware/authMiddleware.js';
+import type { AuthRequest } from '../middleware/authMiddleware.js';
 
 export const listingRouter = Router();
+listingRouter.use(authMiddleware);
 
 const ConditionEnum = z.enum(['nowy', 'używany_dobry', 'używany_dostateczny', 'używany_zły']);
 
@@ -43,10 +46,11 @@ const UpdateBody = z.object({
 const PriceBody = z.object({ price: z.number().positive() });
 
 // GET /api/listings
-listingRouter.get('/', async (req, res, next) => {
+listingRouter.get('/', async (req: AuthRequest, res, next) => {
   try {
     const status = req.query.status as string | undefined;
-    const listings = await ListingRepository.findAll(status as never);
+    const owner = { userId: req.userId, sessionId: req.sessionId };
+    const listings = await ListingRepository.findAll(status as never, owner);
     res.json(listings);
   } catch (err) { next(err); }
 });
@@ -62,10 +66,11 @@ listingRouter.get('/:id', async (req, res, next) => {
 });
 
 // POST /api/listings
-listingRouter.post('/', async (req, res, next) => {
+listingRouter.post('/', async (req: AuthRequest, res, next) => {
   try {
     const dto = CreateBody.parse(req.body);
-    const listing = await ListingRepository.create(dto);
+    const owner = { userId: req.userId, sessionId: req.sessionId };
+    const listing = await ListingRepository.create(dto, owner);
     res.status(201).json(listing);
   } catch (err) { next(err); }
 });

@@ -10,6 +10,7 @@ export const config = {
   port: parseInt(process.env.PORT ?? '3001', 10),
   publicBaseUrl: process.env.PUBLIC_BASE_URL ?? 'http://localhost:3001',
   databaseUrl: process.env.DATABASE_URL ?? '',
+  jwtSecret: process.env.JWT_SECRET ?? 'dev-secret-change-in-prod',
 
   olx: {
     clientId: process.env.OLX_CLIENT_ID ?? '',

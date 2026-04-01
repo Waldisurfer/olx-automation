@@ -10,8 +10,10 @@
     "type-check": "vue-tsc --noEmit"
   },
   "dependencies": {
+    "@types/uuid": "^10.0.0",
     "axios": "^1.7.0",
     "pinia": "^2.1.0",
+    "uuid": "^10.0.0",
     "vue": "^3.4.29",
     "vue-router": "^4.3.0"
   },

@@ -35,12 +35,21 @@ function rowToListing(row: Record<string, unknown>): Listing {
   };
 }
 
+export type Owner = { userId?: number; sessionId?: string };
+
 export const ListingRepository = {
-  async findAll(status?: ListingStatus): Promise<Listing[]> {
+  async findAll(status?: ListingStatus, owner?: Owner): Promise<Listing[]> {
     const pool = getPool();
-    const { rows } = status
-      ? await pool.query('SELECT * FROM listings WHERE status = $1 ORDER BY created_at DESC', [status])
-      : await pool.query('SELECT * FROM listings ORDER BY created_at DESC');
+    const conditions: string[] = [];
+    const values: unknown[] = [];
+    let i = 1;
+
+    if (status) { conditions.push(`status = $${i++}`); values.push(status); }
+    if (owner?.userId) { conditions.push(`user_id = $${i++}`); values.push(owner.userId); }
+    else if (owner?.sessionId) { conditions.push(`session_id = $${i++}`); values.push(owner.sessionId); }
+
+    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+    const { rows } = await pool.query(`SELECT * FROM listings ${where} ORDER BY created_at DESC`, values);
     return rows.map(rowToListing);
   },
 
@@ -58,12 +67,13 @@ export const ListingRepository = {
     return rows.map(rowToListing);
   },
 
-  async create(dto: CreateListingDto): Promise<Listing> {
+  async create(dto: CreateListingDto, owner?: Owner): Promise<Listing> {
     const { rows } = await getPool().query(`
       INSERT INTO listings (title, description, category_id, category_name, price, photos,
         condition, city, negotiable, shipping,
-        ai_generated_description, reduction_percent, reduction_interval_days)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        ai_generated_description, reduction_percent, reduction_interval_days,
+        session_id, user_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
       RETURNING *
     `, [
       dto.title,
@@ -79,6 +89,8 @@ export const ListingRepository = {
       dto.aiGeneratedDescription ?? '',
       dto.reductionPercent ?? 10,
       dto.reductionIntervalDays ?? 14,
+      owner?.sessionId ?? null,
+      owner?.userId ?? null,
     ]);
     return rowToListing(rows[0]);
   },

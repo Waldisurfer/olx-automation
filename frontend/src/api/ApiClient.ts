@@ -5,6 +5,17 @@ export const apiClient = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+apiClient.interceptors.request.use((cfg) => {
+  const token = localStorage.getItem('authToken');
+  const sessionId = localStorage.getItem('sessionId');
+  if (token) {
+    cfg.headers['Authorization'] = `Bearer ${token}`;
+  } else if (sessionId) {
+    cfg.headers['X-Session-Id'] = sessionId;
+  }
+  return cfg;
+});
+
 apiClient.interceptors.response.use(
   (r) => r,
   (err) => {
