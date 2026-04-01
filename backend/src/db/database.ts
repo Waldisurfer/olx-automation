@@ -33,7 +33,7 @@ async function runMigrations(pool: pg.Pool): Promise<void> {
   `);
 
   const migrationsDir = join(__dirname, 'migrations');
-  const files = ['001_initial.sql', '002_price_history.sql', '003_extra_fields.sql'];
+  const files = ['001_initial.sql', '002_price_history.sql', '003_extra_fields.sql', '004_auth.sql'];
 
   for (const file of files) {
     const { rows } = await pool.query('SELECT name FROM migrations WHERE name = $1', [file]);

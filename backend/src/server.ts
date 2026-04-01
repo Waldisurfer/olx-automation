@@ -3,6 +3,8 @@ import cors from 'cors';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { authRouter } from './routes/authRoutes.js';
+import { userAuthRouter } from './routes/userAuthRoutes.js';
+import { authMiddleware } from './middleware/authMiddleware.js';
 import { uploadRouter } from './routes/uploadRoutes.js';
 import { analyzeRouter } from './routes/analyzeRoutes.js';
 import { searchRouter } from './routes/searchRoutes.js';
@@ -36,8 +38,10 @@ export function createServer() {
   app.use('/uploads', express.static(join(__dirname, '../uploads')));
 
   // API routes
+  app.use(authMiddleware);
   app.get('/api/health', (_req, res) => res.json({ ok: true, ts: new Date().toISOString() }));
   app.use('/api/auth', authRouter);
+  app.use('/api/users', userAuthRouter);
   app.use('/api/upload', uploadRouter);
   app.use('/api/analyze', analyzeRouter);
   app.use('/api/search', searchRouter);
