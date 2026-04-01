@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "tsx watch src/main.ts",
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && cp -r src/db/migrations dist/db/",
     "start": "node dist/main.js",
     "lint": "eslint src --ext .ts"
   },
