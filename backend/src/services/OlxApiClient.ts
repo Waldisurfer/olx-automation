@@ -12,7 +12,7 @@ function createClient(): AxiosInstance {
   });
 
   client.interceptors.request.use(async (req: InternalAxiosRequestConfig) => {
-    let token = OlxTokenRepository.get();
+    let token = await OlxTokenRepository.get();
     if (!token) throw new Error('OLX not connected. Please authorize in Settings.');
 
     if (token.expiresAt - Date.now() < FIVE_MINUTES_MS) {
@@ -27,7 +27,7 @@ function createClient(): AxiosInstance {
     (res) => res,
     async (error) => {
       if (error.response?.status === 401 && !error.config._retried) {
-        const token = OlxTokenRepository.get();
+        const token = await OlxTokenRepository.get();
         if (token) {
           error.config._retried = true;
           const fresh = await OlxAuthService.refreshToken(token.refreshToken);

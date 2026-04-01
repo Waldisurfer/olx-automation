@@ -43,62 +43,67 @@ const UpdateBody = z.object({
 const PriceBody = z.object({ price: z.number().positive() });
 
 // GET /api/listings
-listingRouter.get('/', (req, res) => {
-  const status = req.query.status as string | undefined;
-  const listings = ListingRepository.findAll(status as never);
-  res.json(listings);
+listingRouter.get('/', async (req, res, next) => {
+  try {
+    const status = req.query.status as string | undefined;
+    const listings = await ListingRepository.findAll(status as never);
+    res.json(listings);
+  } catch (err) { next(err); }
 });
 
 // GET /api/listings/:id
-listingRouter.get('/:id', (req, res) => {
-  const listing = ListingRepository.findById(Number(req.params.id));
-  if (!listing) { res.status(404).json({ error: 'Not found' }); return; }
-  const history = PriceHistoryRepository.findByListingId(listing.id);
-  res.json({ ...listing, priceHistory: history });
+listingRouter.get('/:id', async (req, res, next) => {
+  try {
+    const listing = await ListingRepository.findById(Number(req.params.id));
+    if (!listing) { res.status(404).json({ error: 'Not found' }); return; }
+    const history = await PriceHistoryRepository.findByListingId(listing.id);
+    res.json({ ...listing, priceHistory: history });
+  } catch (err) { next(err); }
 });
 
 // POST /api/listings
-listingRouter.post('/', (req, res, next) => {
+listingRouter.post('/', async (req, res, next) => {
   try {
     const dto = CreateBody.parse(req.body);
-    const listing = ListingRepository.create(dto);
+    const listing = await ListingRepository.create(dto);
     res.status(201).json(listing);
   } catch (err) { next(err); }
 });
 
 // PUT /api/listings/:id
-listingRouter.put('/:id', (req, res, next) => {
+listingRouter.put('/:id', async (req, res, next) => {
   try {
     const dto = UpdateBody.parse(req.body);
-    const listing = ListingRepository.update(Number(req.params.id), dto);
+    const listing = await ListingRepository.update(Number(req.params.id), dto);
     if (!listing) { res.status(404).json({ error: 'Not found' }); return; }
     res.json(listing);
   } catch (err) { next(err); }
 });
 
 // DELETE /api/listings/:id
-listingRouter.delete('/:id', (req, res) => {
-  const listing = ListingRepository.findById(Number(req.params.id));
-  if (!listing) { res.status(404).json({ error: 'Not found' }); return; }
-  if (listing.status === 'active') {
-    res.status(400).json({ error: 'Cannot delete an active listing. Deactivate it first.' });
-    return;
-  }
-  ListingRepository.delete(listing.id);
-  res.json({ ok: true });
+listingRouter.delete('/:id', async (req, res, next) => {
+  try {
+    const listing = await ListingRepository.findById(Number(req.params.id));
+    if (!listing) { res.status(404).json({ error: 'Not found' }); return; }
+    if (listing.status === 'active') {
+      res.status(400).json({ error: 'Cannot delete an active listing. Deactivate it first.' });
+      return;
+    }
+    await ListingRepository.delete(listing.id);
+    res.json({ ok: true });
+  } catch (err) { next(err); }
 });
 
 // POST /api/listings/:id/publish
 listingRouter.post('/:id/publish', async (req, res, next) => {
   try {
-    const listing = ListingRepository.findById(Number(req.params.id));
+    const listing = await ListingRepository.findById(Number(req.params.id));
     if (!listing) { res.status(404).json({ error: 'Not found' }); return; }
     if (listing.status !== 'draft') {
       res.status(400).json({ error: 'Only draft listings can be published' });
       return;
     }
 
-    // Warn if PUBLIC_BASE_URL is still localhost
     if (config.publicBaseUrl.includes('localhost')) {
       console.warn('[WARN] PUBLIC_BASE_URL is localhost — OLX may not be able to fetch images. Use ngrok/localtunnel.');
     }
@@ -112,20 +117,20 @@ listingRouter.post('/:id/publish', async (req, res, next) => {
 listingRouter.post('/:id/price', async (req, res, next) => {
   try {
     const { price } = PriceBody.parse(req.body);
-    const listing = ListingRepository.findById(Number(req.params.id));
+    const listing = await ListingRepository.findById(Number(req.params.id));
     if (!listing) { res.status(404).json({ error: 'Not found' }); return; }
     await ListingPublisher.updatePrice(listing, price, 'manual');
-    res.json(ListingRepository.findById(listing.id));
+    res.json(await ListingRepository.findById(listing.id));
   } catch (err) { next(err); }
 });
 
 // POST /api/listings/:id/deactivate
 listingRouter.post('/:id/deactivate', async (req, res, next) => {
   try {
-    const listing = ListingRepository.findById(Number(req.params.id));
+    const listing = await ListingRepository.findById(Number(req.params.id));
     if (!listing) { res.status(404).json({ error: 'Not found' }); return; }
     await ListingPublisher.deactivate(listing);
-    res.json(ListingRepository.findById(listing.id));
+    res.json(await ListingRepository.findById(listing.id));
   } catch (err) { next(err); }
 });
 
@@ -133,7 +138,7 @@ listingRouter.post('/:id/deactivate', async (req, res, next) => {
 listingRouter.post('/:id/regenerate', async (req, res, next) => {
   try {
     const { changeRequest } = z.object({ changeRequest: z.string().min(1) }).parse(req.body);
-    const listing = ListingRepository.findById(Number(req.params.id));
+    const listing = await ListingRepository.findById(Number(req.params.id));
     if (!listing) { res.status(404).json({ error: 'Not found' }); return; }
 
     const existing = {
@@ -147,8 +152,7 @@ listingRouter.post('/:id/regenerate', async (req, res, next) => {
 
     const result = await ClaudeVisionService.regenerateDescription(listing.photos, existing, changeRequest);
 
-    // Update listing in DB
-    ListingRepository.update(listing.id, {
+    await ListingRepository.update(listing.id, {
       title: result.title,
       description: result.description,
       categoryName: result.suggestedCategory,
@@ -161,7 +165,7 @@ listingRouter.post('/:id/regenerate', async (req, res, next) => {
 // POST /api/listings/:id/verify
 listingRouter.post('/:id/verify', async (req, res, next) => {
   try {
-    const listing = ListingRepository.findById(Number(req.params.id));
+    const listing = await ListingRepository.findById(Number(req.params.id));
     if (!listing) { res.status(404).json({ error: 'Not found' }); return; }
     const result = await ClaudeVisionService.verifyListing(listing);
     res.json(result);
@@ -169,29 +173,29 @@ listingRouter.post('/:id/verify', async (req, res, next) => {
 });
 
 // POST /api/listings/:id/set-published
-listingRouter.post('/:id/set-published', (req, res, next) => {
+listingRouter.post('/:id/set-published', async (req, res, next) => {
   try {
     const { publishedAt } = z.object({ publishedAt: z.string().min(1) }).parse(req.body);
-    const listing = ListingRepository.findById(Number(req.params.id));
+    const listing = await ListingRepository.findById(Number(req.params.id));
     if (!listing) { res.status(404).json({ error: 'Not found' }); return; }
 
     const pubDate = new Date(publishedAt);
     const nextReduction = new Date(pubDate);
     nextReduction.setDate(nextReduction.getDate() + listing.reductionIntervalDays);
 
-    ListingRepository.setPublished(listing.id, pubDate, nextReduction);
-    PriceHistoryRepository.add(listing.id, listing.price, 'initial');
+    await ListingRepository.setPublished(listing.id, pubDate, nextReduction);
+    await PriceHistoryRepository.add(listing.id, listing.price, 'initial');
 
-    res.json(ListingRepository.findById(listing.id));
+    res.json(await ListingRepository.findById(listing.id));
   } catch (err) { next(err); }
 });
 
 // POST /api/listings/:id/mark-sold
 listingRouter.post('/:id/mark-sold', async (req, res, next) => {
   try {
-    const listing = ListingRepository.findById(Number(req.params.id));
+    const listing = await ListingRepository.findById(Number(req.params.id));
     if (!listing) { res.status(404).json({ error: 'Not found' }); return; }
     await ListingPublisher.markSold(listing);
-    res.json(ListingRepository.findById(listing.id));
+    res.json(await ListingRepository.findById(listing.id));
   } catch (err) { next(err); }
 });

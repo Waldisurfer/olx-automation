@@ -27,7 +27,7 @@ export const OlxAuthService = {
       { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
     );
     const token = responseToStored(response.data);
-    OlxTokenRepository.save(token);
+    await OlxTokenRepository.save(token);
     return token;
   },
 
@@ -43,12 +43,12 @@ export const OlxAuthService = {
       { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
     );
     const token = responseToStored(response.data);
-    OlxTokenRepository.save(token);
+    await OlxTokenRepository.save(token);
     return token;
   },
 
-  getStatus(): { connected: boolean; expiresAt?: string } {
-    const token = OlxTokenRepository.get();
+  async getStatus(): Promise<{ connected: boolean; expiresAt?: string }> {
+    const token = await OlxTokenRepository.get();
     if (!token) return { connected: false };
     return {
       connected: true,
@@ -56,8 +56,8 @@ export const OlxAuthService = {
     };
   },
 
-  disconnect(): void {
-    OlxTokenRepository.delete();
+  async disconnect(): Promise<void> {
+    await OlxTokenRepository.delete();
   },
 };
 

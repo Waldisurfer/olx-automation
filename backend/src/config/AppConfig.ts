@@ -6,16 +6,10 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 // .env is at project root (two levels up from src/config/)
 dotenvConfig({ path: join(__dirname, '../../../.env') });
 
-function requireEnv(key: string): string {
-  const val = process.env[key];
-  if (!val) throw new Error(`Missing required env var: ${key}`);
-  return val;
-}
-
 export const config = {
   port: parseInt(process.env.PORT ?? '3001', 10),
   publicBaseUrl: process.env.PUBLIC_BASE_URL ?? 'http://localhost:3001',
-  dbPath: process.env.DB_PATH ?? './data/olx_automation.db',
+  databaseUrl: process.env.DATABASE_URL ?? '',
 
   olx: {
     clientId: process.env.OLX_CLIENT_ID ?? '',

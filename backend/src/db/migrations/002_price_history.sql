@@ -1,9 +1,9 @@
 CREATE TABLE IF NOT EXISTS price_history (
-  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  id          SERIAL PRIMARY KEY,
   listing_id  INTEGER NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
-  price       REAL NOT NULL,
+  price       NUMERIC NOT NULL,
   reason      TEXT NOT NULL,
-  recorded_at TEXT NOT NULL DEFAULT (datetime('now'))
+  recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_price_history_listing ON price_history(listing_id);

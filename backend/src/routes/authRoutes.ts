@@ -21,11 +21,19 @@ authRouter.get('/olx/callback', async (req, res, next) => {
   }
 });
 
-authRouter.get('/olx/status', (_req, res) => {
-  res.json(OlxAuthService.getStatus());
+authRouter.get('/olx/status', async (_req, res, next) => {
+  try {
+    res.json(await OlxAuthService.getStatus());
+  } catch (err) {
+    next(err);
+  }
 });
 
-authRouter.delete('/olx/disconnect', (_req, res) => {
-  OlxAuthService.disconnect();
-  res.json({ ok: true });
+authRouter.delete('/olx/disconnect', async (_req, res, next) => {
+  try {
+    await OlxAuthService.disconnect();
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
 });
