@@ -23,7 +23,7 @@ export const listingsApi = {
     return data;
   },
 
-  async update(id: number, dto: Partial<{ title: string; description: string; categoryId: number; categoryName: string; price: number; reductionPercent: number; reductionIntervalDays: number }>): Promise<Listing> {
+  async update(id: number, dto: Partial<{ title: string; description: string; categoryId: number; categoryName: string; price: number; condition: string; city: string; negotiable: boolean; shipping: boolean; reductionPercent: number; reductionIntervalDays: number }>): Promise<Listing> {
     const { data } = await apiClient.put<Listing>(`/listings/${id}`, dto);
     return data;
   },
