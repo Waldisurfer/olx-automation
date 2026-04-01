@@ -8,7 +8,7 @@ export function startPriceReductionJob(): void {
   cron.schedule('0 */12 * * *', async () => {
     console.log('[PriceReductionJob] Checking for listings due for price reduction...');
 
-    const due = ListingRepository.findDueForReduction();
+    const due = await ListingRepository.findDueForReduction();
     if (due.length === 0) {
       console.log('[PriceReductionJob] No listings due for reduction.');
       return;

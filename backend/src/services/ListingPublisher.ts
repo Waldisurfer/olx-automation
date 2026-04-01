@@ -55,10 +55,10 @@ export const ListingPublisher = {
     const { data } = await olxApi.post<{ data: OlxAdvertResponse }>('/adverts', payload);
     const advert = data.data;
 
-    ListingRepository.setOlxData(listing.id, advert.id, advert.url ?? '');
-    PriceHistoryRepository.add(listing.id, listing.price, 'initial');
+    await ListingRepository.setOlxData(listing.id, advert.id, advert.url ?? '');
+    await PriceHistoryRepository.add(listing.id, listing.price, 'initial');
 
-    return ListingRepository.findById(listing.id)!;
+    return (await ListingRepository.findById(listing.id))!;
   },
 
   async updatePrice(listing: Listing, newPrice: number, reason: 'manual' | 'auto_reduction'): Promise<void> {
@@ -68,8 +68,8 @@ export const ListingPublisher = {
       });
     }
 
-    ListingRepository.updatePrice(listing.id, newPrice);
-    PriceHistoryRepository.add(listing.id, newPrice, reason);
+    await ListingRepository.updatePrice(listing.id, newPrice);
+    await PriceHistoryRepository.add(listing.id, newPrice, reason);
   },
 
   async deactivate(listing: Listing): Promise<void> {
@@ -78,7 +78,7 @@ export const ListingPublisher = {
         // Already removed from OLX – still update local state
       });
     }
-    ListingRepository.setStatus(listing.id, 'paused');
+    await ListingRepository.setStatus(listing.id, 'paused');
   },
 
   async markSold(listing: Listing): Promise<void> {
@@ -87,7 +87,7 @@ export const ListingPublisher = {
         .put(`/adverts/${listing.olxAdvertId}/activate`, {})
         .catch(() => {});
     }
-    ListingRepository.markSold(listing.id);
-    PriceHistoryRepository.add(listing.id, listing.price, 'sold');
+    await ListingRepository.markSold(listing.id);
+    await PriceHistoryRepository.add(listing.id, listing.price, 'sold');
   },
 };

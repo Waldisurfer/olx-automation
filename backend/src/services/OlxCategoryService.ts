@@ -146,7 +146,7 @@ const CACHE_TTL = 24 * 60 * 60 * 1000;
 export const OlxCategoryService = {
   async getAll(): Promise<OlxCategory[]> {
     // Try live API if authenticated
-    if (OlxTokenRepository.get()) {
+    if (await OlxTokenRepository.get()) {
       if (_liveCache && Date.now() - _liveCacheAt < CACHE_TTL) return _liveCache;
       try {
         const { data } = await olxApi.get('/categories');
