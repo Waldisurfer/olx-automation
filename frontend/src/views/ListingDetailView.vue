@@ -109,22 +109,33 @@ async function deleteListing() {
   }
 }
 
-function copyToClipboard() {
-  if (!listing.value) return;
-  const l = listing.value;
-  const lines = [
-    `TYTUŁ: ${l.title}`,
-    ``,
-    `OPIS:`,
-    l.description,
-    ``,
-    `CENA: ${l.price} PLN`,
-    `KATEGORIA: ${l.categoryName}`,
-  ];
-  if (l.olxAdvertUrl) lines.push(``, `LINK: ${l.olxAdvertUrl}`);
-  navigator.clipboard.writeText(lines.join('\n'))
-    .then(() => notif.add('Skopiowano do schowka!', 'success'))
+function copyText(text: string, label: string) {
+  navigator.clipboard.writeText(text)
+    .then(() => notif.add(`Skopiowano ${label}!`, 'success'))
     .catch(() => notif.add('Nie udało się skopiować.', 'error'));
+}
+
+async function downloadPhoto(fileId: string, index: number) {
+  try {
+    const res = await fetch(uploadUrl(fileId));
+    const blob = await res.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `zdjecie-${index + 1}.jpg`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  } catch {
+    notif.add('Nie udało się pobrać zdjęcia.', 'error');
+  }
+}
+
+async function downloadAllPhotos() {
+  if (!listing.value) return;
+  for (let i = 0; i < listing.value.photos.length; i++) {
+    await downloadPhoto(listing.value.photos[i], i);
+    if (i < listing.value.photos.length - 1) await new Promise(r => setTimeout(r, 300));
+  }
+  notif.add(`Pobieranie ${listing.value.photos.length} zdjęć...`, 'info');
 }
 
 async function savePublishDate() {
@@ -162,8 +173,8 @@ function onRegenerated(result: { title: string; description: string; suggestedCa
           <a v-if="listing.olxAdvertUrl" :href="listing.olxAdvertUrl" target="_blank" rel="noopener" class="olx-link">
             Otwórz na OLX ↗
           </a>
-          <button class="btn-clipboard" @click="copyToClipboard" title="Kopiuj do schowka">
-            📋 Kopiuj
+          <button class="btn-clipboard" @click="copyText(listing.title, 'tytuł')" title="Kopiuj tytuł">
+            📋 Kopiuj tytuł
           </button>
           <button class="btn-verify" @click="showVerify = true" title="Zweryfikuj ogłoszenie">
             🔍 Zweryfikuj
@@ -192,8 +203,19 @@ function onRegenerated(result: { title: string; description: string; suggestedCa
       </div>
 
       <!-- Photos -->
-      <div v-if="listing.photos.length" class="photos">
-        <img v-for="p in listing.photos" :key="p" :src="uploadUrl(p)" class="photo" />
+      <div v-if="listing.photos.length" class="photos-section">
+        <div class="photos-header">
+          <span class="photos-count">{{ listing.photos.length }} zdjęć</span>
+          <button class="btn-clipboard" @click="downloadAllPhotos" title="Pobierz wszystkie zdjęcia">
+            ⬇️ Pobierz wszystkie
+          </button>
+        </div>
+        <div class="photos">
+          <div v-for="(p, i) in listing.photos" :key="p" class="photo-wrap">
+            <img :src="uploadUrl(p)" class="photo" />
+            <button class="photo-dl" @click="downloadPhoto(p, i)" title="Pobierz zdjęcie">⬇️</button>
+          </div>
+        </div>
       </div>
 
       <!-- Info -->
@@ -232,7 +254,12 @@ function onRegenerated(result: { title: string; description: string; suggestedCa
 
       <!-- Description -->
       <div class="section">
-        <h3>Opis</h3>
+        <div class="section-header">
+          <h3>Opis</h3>
+          <button class="btn-clipboard" @click="copyText(listing.description, 'opis')" title="Kopiuj opis">
+            📋 Kopiuj opis
+          </button>
+        </div>
         <p class="description">{{ listing.description }}</p>
       </div>
 
@@ -329,8 +356,21 @@ h1 { font-size: 24px; font-weight: 700; margin-top: 6px; }
 .confirm-box p { margin: 0 0 12px; font-size: 14px; color: #92400e; }
 .confirm-actions { display: flex; gap: 8px; }
 
-.photos { display: flex; gap: 10px; overflow-x: auto; margin-bottom: 20px; }
-.photo { height: 160px; width: auto; border-radius: 10px; object-fit: cover; }
+.photos-section { margin-bottom: 20px; }
+.photos-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.photos-count { font-size: 13px; color: #9ca3af; }
+.photos { display: flex; gap: 10px; overflow-x: auto; }
+.photo-wrap { position: relative; flex-shrink: 0; }
+.photo { height: 160px; width: auto; border-radius: 10px; object-fit: cover; display: block; }
+.photo-dl {
+  position: absolute; bottom: 6px; right: 6px;
+  background: rgba(0,0,0,0.55); color: #fff; border: none;
+  border-radius: 6px; padding: 3px 7px; font-size: 13px; cursor: pointer;
+  opacity: 0; transition: opacity 0.15s;
+}
+.photo-wrap:hover .photo-dl { opacity: 1; }
+.section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.section-header h3 { margin-bottom: 0; }
 .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px; }
 @media (min-width: 600px) { .info-grid { grid-template-columns: repeat(3, 1fr); } }
 .info-card { background: #f9fafb; border-radius: 10px; padding: 14px; }
