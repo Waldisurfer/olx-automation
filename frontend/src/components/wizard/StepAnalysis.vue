@@ -12,6 +12,7 @@ const notif = useNotificationStore();
 const isAnalyzing = ref(false);
 const error = ref('');
 const showSamples = ref(false);
+const hints = ref('');
 
 const searchKeywords = computed(() =>
   [wizard.metadata.itemName, wizard.metadata.model]
@@ -19,16 +20,14 @@ const searchKeywords = computed(() =>
   || wizard.editedTitle
 );
 
-onMounted(async () => {
-  if (wizard.analysisResult) return; // already analyzed
+async function runAnalysis(hintsText?: string) {
   isAnalyzing.value = true;
   error.value = '';
   try {
-    // Use document photos for AI analysis (cheaper) — fall back to max 3 listing photos
     const analysisFileIds = wizard.documentFileIds.length > 0
       ? wizard.documentFileIds
       : wizard.uploadedFileIds.slice(0, 3);
-    const result = await analyzeApi.analyze(analysisFileIds, wizard.metadata);
+    const result = await analyzeApi.analyze(analysisFileIds, wizard.metadata, hintsText || undefined);
     wizard.setAnalysisResult(result);
   } catch (e) {
     error.value = (e as Error).message;
@@ -36,7 +35,16 @@ onMounted(async () => {
   } finally {
     isAnalyzing.value = false;
   }
+}
+
+onMounted(async () => {
+  if (wizard.analysisResult) return; // already analyzed
+  await runAnalysis();
 });
+
+async function regenerate() {
+  await runAnalysis(hints.value);
+}
 
 function onNext() {
   if (!wizard.editedTitle || !wizard.editedDescription) {
@@ -107,6 +115,23 @@ function onNext() {
         </div>
       </div>
 
+      <div class="hints-section">
+        <label class="hints-label">Wskazówki dla AI (opcjonalne)</label>
+        <p class="hints-desc">Np. "krótszy opis", "bez emotikon", "podkreśl baterię", "styl formalny"</p>
+        <div class="hints-row">
+          <textarea
+            v-model="hints"
+            rows="2"
+            class="input hints-input"
+            placeholder="Wpisz wskazówki jak zmienić opis..."
+            maxlength="500"
+          />
+          <AppButton variant="secondary" :disabled="isAnalyzing" @click="regenerate">
+            {{ isAnalyzing ? '...' : '🔄 Regeneruj' }}
+          </AppButton>
+        </div>
+      </div>
+
       <div class="actions">
         <AppButton variant="ghost" @click="wizard.prevStep()">← Wróć</AppButton>
         <AppButton @click="onNext">Dalej →</AppButton>
@@ -136,5 +161,10 @@ label { font-size: 13px; font-weight: 600; color: #374151; }
 .error-box { background: #fef2f2; border-radius: 10px; padding: 16px; color: #dc2626; }
 .official-link { color: #2563eb; font-size: 13px; text-decoration: none; }
 .official-link:hover { text-decoration: underline; }
+.hints-section { background: #f5f3ff; border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 6px; }
+.hints-label { font-size: 13px; font-weight: 600; color: #374151; }
+.hints-desc { font-size: 12px; color: #6b7280; margin: 0; }
+.hints-row { display: flex; gap: 10px; align-items: flex-start; }
+.hints-input { flex: 1; resize: none; }
 .actions { display: flex; justify-content: space-between; }
 </style>

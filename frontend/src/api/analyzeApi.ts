@@ -10,8 +10,8 @@ export interface ItemMetadata {
 }
 
 export const analyzeApi = {
-  async analyze(fileIds: string[], metadata?: ItemMetadata): Promise<PhotoAnalysisResult> {
-    const { data } = await apiClient.post<PhotoAnalysisResult>('/analyze', { fileIds, metadata });
+  async analyze(fileIds: string[], metadata?: ItemMetadata, hints?: string): Promise<PhotoAnalysisResult> {
+    const { data } = await apiClient.post<PhotoAnalysisResult>('/analyze', { fileIds, metadata, hints });
     return data;
   },
 
