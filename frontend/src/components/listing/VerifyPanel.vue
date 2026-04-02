@@ -3,9 +3,11 @@ import { ref } from 'vue';
 import { listingsApi } from '@/api/listingsApi.js';
 import { useNotificationStore } from '@/stores/useNotificationStore.js';
 import AppButton from '@/components/common/AppButton.vue';
-import type { VerificationResult, VerificationSuggestion } from '@/types/Types.js';
+import type { VerificationResult, VerificationSuggestion, Listing } from '@/types/Types.js';
 
-const props = defineProps<{ listingId: number }>();
+interface AppliedChange { element: string; before: string; after: string; }
+
+const props = defineProps<{ listingId: number; listing?: Listing }>();
 const emit = defineEmits<{ updated: []; close: [] }>();
 
 const notif = useNotificationStore();
@@ -14,6 +16,8 @@ const isVerifying = ref(false);
 const dismissed = ref<Set<string>>(new Set());
 const applying = ref<string | null>(null);
 const regenerating = ref<string | null>(null);
+const applyingAll = ref(false);
+const appliedSummary = ref<AppliedChange[]>([]);
 
 const ELEMENT_LABELS: Record<string, string> = {
   title: 'Tytuł', description: 'Opis', price: 'Cena',
@@ -42,24 +46,39 @@ function dismiss(id: string) {
   dismissed.value = new Set([...dismissed.value, id]);
 }
 
+async function applySuggestion(s: VerificationSuggestion): Promise<AppliedChange | null> {
+  if (!s.newValue) return null;
+  const l = props.listing;
+  if (s.element === 'title') {
+    await listingsApi.update(props.listingId, { title: s.newValue });
+    return { element: 'Tytuł', before: l?.title ?? '', after: s.newValue };
+  } else if (s.element === 'description') {
+    await listingsApi.update(props.listingId, { description: s.newValue });
+    return { element: 'Opis', before: l?.description ?? '', after: s.newValue };
+  } else if (s.element === 'price') {
+    const price = parseFloat(s.newValue);
+    if (!isNaN(price)) {
+      await listingsApi.setPrice(props.listingId, price);
+      return { element: 'Cena', before: l ? `${l.price} PLN` : '', after: `${price} PLN` };
+    }
+  } else if (s.element === 'shipping') {
+    await listingsApi.update(props.listingId, { shipping: true });
+    return { element: 'Wysyłka', before: 'Nie', after: 'Tak' };
+  } else if (s.element === 'city') {
+    await listingsApi.update(props.listingId, { city: s.newValue });
+    return { element: 'Miasto', before: l?.city ?? '—', after: s.newValue };
+  } else if (s.element === 'condition') {
+    await listingsApi.update(props.listingId, { condition: s.newValue as never });
+    return { element: 'Stan', before: l?.condition ?? '', after: s.newValue };
+  }
+  return null;
+}
+
 async function apply(s: VerificationSuggestion) {
   if (!s.newValue) return;
   applying.value = s.id;
   try {
-    if (s.element === 'title') {
-      await listingsApi.update(props.listingId, { title: s.newValue });
-    } else if (s.element === 'description') {
-      await listingsApi.update(props.listingId, { description: s.newValue });
-    } else if (s.element === 'price') {
-      const price = parseFloat(s.newValue);
-      if (!isNaN(price)) await listingsApi.setPrice(props.listingId, price);
-    } else if (s.element === 'shipping') {
-      await listingsApi.update(props.listingId, { shipping: true });
-    } else if (s.element === 'city') {
-      await listingsApi.update(props.listingId, { city: s.newValue });
-    } else if (s.element === 'condition') {
-      await listingsApi.update(props.listingId, { condition: s.newValue as never });
-    }
+    await applySuggestion(s);
     dismiss(s.id);
     notif.add('Zmiana zastosowana!', 'success');
     emit('updated');
@@ -68,6 +87,25 @@ async function apply(s: VerificationSuggestion) {
   } finally {
     applying.value = null;
   }
+}
+
+async function applyAll() {
+  const toApply = visibleSuggestions().filter(s => s.newValue);
+  if (toApply.length === 0) return;
+  applyingAll.value = true;
+  appliedSummary.value = [];
+  const changes: AppliedChange[] = [];
+  for (const s of toApply) {
+    try {
+      const change = await applySuggestion(s);
+      if (change) changes.push(change);
+      dismiss(s.id);
+    } catch { /* ignore individual failures */ }
+  }
+  appliedSummary.value = changes;
+  applyingAll.value = false;
+  notif.add(`Zastosowano ${changes.length} poprawek!`, 'success');
+  emit('updated');
 }
 
 async function regenerate(s: VerificationSuggestion) {
@@ -129,6 +167,25 @@ runVerification();
             <div class="score-hint">
               {{ visibleSuggestions().length === 0 ? 'Brak aktywnych sugestii' : `${visibleSuggestions().length} sugestii do rozpatrzenia` }}
             </div>
+          </div>
+        </div>
+
+        <!-- Apply all button -->
+        <div v-if="visibleSuggestions().filter(s => s.newValue).length > 0" class="apply-all-bar">
+          <span class="apply-all-hint">{{ visibleSuggestions().filter(s => s.newValue).length }} poprawek gotowych do zastosowania</span>
+          <AppButton :loading="applyingAll" @click="applyAll">
+            ⚡ Zastosuj wszystkie poprawki
+          </AppButton>
+        </div>
+
+        <!-- Applied summary -->
+        <div v-if="appliedSummary.length > 0" class="applied-summary">
+          <div class="applied-title">✅ Zastosowane zmiany ({{ appliedSummary.length }})</div>
+          <div v-for="c in appliedSummary" :key="c.element" class="applied-item">
+            <div class="applied-element">{{ c.element }}</div>
+            <div v-if="c.before" class="applied-before">{{ c.before.length > 80 ? c.before.slice(0, 80) + '…' : c.before }}</div>
+            <div class="applied-arrow">↓</div>
+            <div class="applied-after">{{ c.after.length > 80 ? c.after.slice(0, 80) + '…' : c.after }}</div>
           </div>
         </div>
 
@@ -231,6 +288,29 @@ h2 { font-size: 18px; font-weight: 700; margin: 0; }
 .score-label { font-size: 11px; color: #9ca3af; }
 .score-text { font-size: 16px; font-weight: 700; }
 .score-hint { font-size: 13px; color: #6b7280; margin-top: 4px; }
+
+.apply-all-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 24px; background: #f5f3ff; border-bottom: 1px solid #ddd6fe;
+}
+.apply-all-hint { font-size: 13px; color: #6b7280; }
+
+.applied-summary {
+  margin: 0 24px 4px; border: 1px solid #a7f3d0; border-radius: 10px;
+  background: #f0fdf4; overflow: hidden;
+}
+.applied-title {
+  font-size: 13px; font-weight: 700; color: #065f46;
+  padding: 10px 14px; border-bottom: 1px solid #a7f3d0;
+}
+.applied-item {
+  padding: 10px 14px; border-bottom: 1px solid #d1fae5; display: flex; flex-direction: column; gap: 3px;
+}
+.applied-item:last-child { border-bottom: none; }
+.applied-element { font-size: 11px; font-weight: 700; color: #059669; text-transform: uppercase; letter-spacing: 0.5px; }
+.applied-before { font-size: 12px; color: #9ca3af; text-decoration: line-through; white-space: pre-wrap; }
+.applied-arrow { font-size: 11px; color: #6b7280; }
+.applied-after { font-size: 13px; color: #111827; font-weight: 500; white-space: pre-wrap; }
 
 .suggestions { display: flex; flex-direction: column; gap: 12px; padding: 16px 24px; flex: 1; }
 .suggestion-card {
