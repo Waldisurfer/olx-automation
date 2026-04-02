@@ -189,8 +189,9 @@ function onRegenerated(result: { title: string; description: string; suggestedCa
       <VerifyPanel
         v-if="showVerify && listing"
         :listing-id="listing.id"
+        :listing="listing"
         @close="showVerify = false"
-        @updated="listing = null; isLoading = true; listingsApi.getById(Number(route.params.id)).then(l => { listing = l; isLoading = false; })"
+        @updated="listingsApi.getById(Number(route.params.id)).then(l => { listing = l; })"
       />
 
       <!-- Delete confirmation -->
