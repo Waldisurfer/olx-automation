@@ -268,7 +268,7 @@ Wygeneruj nową wersję ogłoszenia uwzględniając powyższą zmianę. Zachowaj
     return result;
   },
 
-  async analyzePhotos(fileIds: string[], metadata?: ItemMetadata): Promise<PhotoAnalysisResult> {
+  async analyzePhotos(fileIds: string[], metadata?: ItemMetadata, hints?: string): Promise<PhotoAnalysisResult> {
     if (fileIds.length === 0) throw new Error('At least one photo is required');
     if (fileIds.length > 8) throw new Error('Maximum 8 photos allowed');
 
@@ -314,6 +314,10 @@ Wygeneruj nową wersję ogłoszenia uwzględniając powyższą zmianę. Zachowaj
       ? `\nDodatkowe informacje o przedmiocie:\n${contextParts.join('\n')}\n`
       : '';
 
+    const hintsBlock = hints?.trim()
+      ? `\nWSKAZÓWKI OD SPRZEDAJĄCEGO (zastosuj je przy pisaniu opisu):\n${hints.trim()}\n`
+      : '';
+
     const response = await client.messages.create({
       model: config.anthropic.model,
       max_tokens: 1500,
@@ -335,8 +339,7 @@ Twój styl:
             ...imageContents,
             {
               type: 'text',
-              text: `Przeanalizuj zdjęcia i stwórz atrakcyjne ogłoszenie sprzedaży na OLX.${contextBlock}
-
+              text: `Przeanalizuj zdjęcia i stwórz atrakcyjne ogłoszenie sprzedaży na OLX.${contextBlock}${hintsBlock}
 Pamiętaj: napisz entuzjastyczny opis który podkreśla zalety produktu. Stan jak na zdjęciach, ale produkt jest bardzo fajny i wart uwagi. Jeśli masz link do oficjalnej strony — umieść go w opisie.`,
             },
           ],

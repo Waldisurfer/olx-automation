@@ -6,6 +6,7 @@ export const analyzeRouter = Router();
 
 const AnalyzeBody = z.object({
   fileIds: z.array(z.string().uuid()).min(1).max(8),
+  hints: z.string().max(500).optional(),
   metadata: z.object({
     itemName: z.string().optional(),
     model: z.string().optional(),
@@ -17,8 +18,8 @@ const AnalyzeBody = z.object({
 
 analyzeRouter.post('/', async (req, res, next) => {
   try {
-    const { fileIds, metadata } = AnalyzeBody.parse(req.body);
-    const result = await ClaudeVisionService.analyzePhotos(fileIds, metadata);
+    const { fileIds, metadata, hints } = AnalyzeBody.parse(req.body);
+    const result = await ClaudeVisionService.analyzePhotos(fileIds, metadata, hints);
     res.json(result);
   } catch (err) {
     next(err);
