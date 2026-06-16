@@ -74,8 +74,8 @@ export const ListingPublisher = {
 
   async deactivate(listing: Listing): Promise<void> {
     if (listing.olxAdvertId) {
-      await olxApi.delete(`/adverts/${listing.olxAdvertId}`).catch(() => {
-        // Already removed from OLX – still update local state
+      await olxApi.delete(`/adverts/${listing.olxAdvertId}`).catch((err: unknown) => {
+        console.warn('OLX deactivate failed (advert may already be removed):', err);
       });
     }
     await ListingRepository.setStatus(listing.id, 'paused');
@@ -85,7 +85,9 @@ export const ListingPublisher = {
     if (listing.olxAdvertId) {
       await olxApi
         .put(`/adverts/${listing.olxAdvertId}/activate`, {})
-        .catch(() => {});
+        .catch((err: unknown) => {
+          console.warn('OLX markSold activate failed:', err);
+        });
     }
     await ListingRepository.markSold(listing.id);
     await PriceHistoryRepository.add(listing.id, listing.price, 'sold');
